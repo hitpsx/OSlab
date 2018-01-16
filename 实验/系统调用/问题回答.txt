@@ -1,0 +1,11 @@
+1.从Linux 0.11现在的机制看，它的系统调用最多能传递几个参数？你能想出办法来扩大这个限制吗？
+
+答：当应用程序经过库函数向内核发出一个中断调用int 0x80时，就开始执行一个系统调用。其中寄存器eax中存放着系统调用号，而携带的参数可依次存放在寄存器ebx，ecx和edx中。因此Linux 0.11内核中用户程序能够向内核最多直接传递三个参数，当然也可以不带参数。为了方便执行，内核源代码在include/unistd文件中定义了宏函数_syscalln(),其中n代表携带的参数个数，可以分别0至3。因此最多可以直接传递3个参数。
+若需要传递多个参数，大块数据给内核，则可以传递这块数据的指针值。例如系统调用int read(int fd,char buf,int n)在其宏形式_syscall3(int, read, int, fd, char, buf, int, n)，对于include/unistd中给出的每个系统调用宏，都有2+2*n个参数。其中第一个参数对应系统调用返回值的类型；第2个参数是系统调用的名称；随后是系统调用所携带参数的类型和名称。
+2.用文字简要描述向Linux 0.11添加一个系统调用foo()的步骤。
+
+答：1）修改/include/unistd.h，在里面加上新系统调用的宏定义：#define __NR_foo 72为原来从0开始数有72个系统调用，变成73。
+2）修改/include/linux/sys.h，在里面加上extern int sys_foo()，并在该文件的fn_ptr sys_call_table[]数组中加上一项sys_foo
+3）修改kernel里面的system_call.s文件改变里面的系统调用个数，也即在原来的个数上加1；即nr_system_calls = 73
+4）在kernel文件中编写实现新加的系统调用函数的文件foo.c
+5）修改makefile文件，修改OBJS和Dependencies添加新的系统调用，使其在编译linux时能将新加的调用同时编译。
